@@ -3,3 +3,5 @@ Insert into apirelease values ('2017-01-01 10:00:00', "v1", "/api/v1/users", "ge
 
 CREATE TABLE users(username varchar2(30), email varchar2(30), password varchar2(30), full_name varchar(30), id integer primary key autoincrement);
 Insert into users values ('user1', 'user1@users.com', 'user1', 'User 1', 1);
+
+CREATE TABLE tweets(id integer primary key autoincrement, username varchar2(30), body varchar2(30), tweet_time date);
