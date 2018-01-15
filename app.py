@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, make_response, abort
+from flask import Flask, jsonify, request, make_response, abort, render_template
 from time import gmtime, strftime
 import json
 import sqlite3
@@ -6,10 +6,10 @@ import sqlite3
 app = Flask(__name__)
 
 ##### Info API
-@app.route ("/api/v1/info")
+@app.route("/api/v1/info")
 def home_index():
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print("Opened database successfully")
     app_list=[]
     cursor = conn.execute("SELECT buildtime, version, methods, links from apirelease")
     for row in cursor:
@@ -30,7 +30,7 @@ def get_users():
 
 def list_users():
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfuly");
+    print("Opened database successfuly")
     api_list=[]
     cursor = conn.execute("SELECT username, full_name, email, password, id from users")
     for row in cursor:
@@ -50,7 +50,7 @@ def create_user():
     if not request.json or not 'username' in request.json or not 'email' in request.json or not 'password' in request.json:
         abort(400)
     user = {
-        'username': request.json ['username'],
+        'username': request.json['username'],
         'email': request.json['email'],
         'name': request.json.get('name',""),
         'password': request.json['password']
@@ -59,7 +59,7 @@ def create_user():
 
 def add_user(new_user):
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print("Opened database successfully")
     api_list=[]
     cursor=conn.cursor()
     cursor.execute("SELECT * from users where username=? or email=?",(new_user['username'],new_user['email']))
@@ -67,9 +67,9 @@ def add_user(new_user):
     if len(data) != 0:
         abort(409)
     else:
-       cursor.execute("insert into users (username, email, password, full_name) values(?,?,?,?)",(new_user['username'],new_user['email'], new_user['password'], new_user['name']))
-       conn.commit()
-       return "Success"
+        cursor.execute("insert into users (username, email, password, full_name) values(?,?,?,?)",(new_user['username'],new_user['email'], new_user['password'], new_user['name']))
+        conn.commit()
+        return "Success"
     conn.close()
     return jsonify(a_dict)
 
@@ -83,11 +83,11 @@ def delete_user():
 
 def del_user(del_user):
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print("Opened database successfully")
     cursor=conn.cursor()
     cursor.execute("SELECT * from users where username=? ",(del_user,))
     data = cursor.fetchall()
-    print ("Data, ",data)
+    print("Data, ",data)
     if len(data) == 0:
         abort(404)
     else:
@@ -105,23 +105,23 @@ def update_user(user_id):
     key_list = request.json.keys()
     for i in key_list:
         user[i] = request.json[i]
-    print (user)
+    print(user)
     return jsonify({'status': update_user(user)}), 200
 
 def update_user(user):
     conn=sqlite3.connect('mydb.db')
-    print("Opened database successfully");
+    print("Opened database successfully")
     cursor=conn.cursor()
     cursor.execute("SELECT * from users where id=? ",(user['id'],))
     data = cursor.fetchall()
-    print ("Data, ",data)
+    print("Data, ",data)
     if len(data) == 0:
         abort(404)
     else:
         key_list=user.keys()
         for i in key_list:
             if i != "id":
-                print (user, i)
+                print(user, i)
                 cursor.execute("""UPDATE users SET {0} = ? WHERE id = ?""".format(i), (user[i], user['id']))
                 conn.commit()
     return "Success"
@@ -134,13 +134,13 @@ def get_tweets():
 
 def list_tweets():
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print("Opened database successfully")
     api_list=[]
     cursor=conn.cursor()
     cursor.execute("SELECT username, body, tweet_time, id from tweets")
     data = cursor.fetchall()
-    print (data)
-    print (len(data))
+    print(data)
+    print(len(data))
     if len(data) == 0:
         return api_list
     else:
@@ -150,10 +150,10 @@ def list_tweets():
             tweets['body'] = row[1]
             tweets['timestamp'] = row[2]
             tweets['id'] = row[3]
-            print (tweets)
+            print(tweets)
             api_list.append(tweets)
     conn.close()
-    print (api_list)
+    print(api_list)
     return jsonify({'tweets_list': api_list})
 
 ## Get by user id
@@ -162,14 +162,14 @@ def get_tweet(id):
     return list_tweet(id)
 
 def list_tweet(user_id):
-    print (user_id)
+    print(user_id)
     conn = sqlite3.connect('mydb.db')
-    print ("Opened database successfully");
+    print("Opened database successfully")
     api_list=[]
     cursor=conn.cursor()
     cursor.execute("SELECT * from tweets where id=?",(user_id,))
     data = cursor.fetchall()
-    print (data)
+    print(data)
     if len(data) == 0:
         abort(404)
     else:
@@ -195,7 +195,7 @@ def add_tweets():
 
 def add_tweet(new_tweets):
     conn = sqlite3.connect('mydb.db')
-    print("Opened database successfully");
+    print("Opened database successfully")
     cursor=conn.cursor()
     cursor.execute("SELECT * from users where username=? ", (new_tweets['username'],))
     data = cursor.fetchall()
@@ -206,6 +206,11 @@ def add_tweet(new_tweets):
         conn.commit()
         return "Success"
 
+#### Link with frontend
+@app.route('/')
+def main():
+    sumSessionCounter()
+    return render_template('main.html')
 
 ##### Error handlers
 @app.errorhandler(400)
@@ -220,5 +225,6 @@ def resource_not_found(error):
 def user_found(error):
     return make_response(jsonify({'error': 'Conflict! Record exist'}), 409)
 
+# Main launcher
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
