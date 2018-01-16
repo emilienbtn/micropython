@@ -212,6 +212,10 @@ def main():
     sumSessionCounter()
     return render_template('main.html')
 
+@app.route('/adduser')
+def adduser():
+    return render_template('adduser.html')
+
 ##### Error handlers
 @app.errorhandler(400)
 def invalid_request(error):

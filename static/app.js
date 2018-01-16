@@ -8,11 +8,11 @@ function User(data) {
 
 function UserListViewModel() {
     var self = this;
-    self.user_list = ko.observableArray([]);
-    self.name = ko.observable();
-    self.username = ko.observable();
-    self.email = ko.observable();
-    self.password = ko.observable();
+    self.user_list= ko.observableArray([]);
+    self.name= ko.observable();
+    self.username= ko.observable();
+    self.email= ko.observable();
+    self.password= ko.observable();
 
     self.addUser = function () {
         self.save();
