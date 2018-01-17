@@ -216,6 +216,10 @@ def main():
 def adduser():
     return render_template('adduser.html')
 
+@app.route('/addtweets')
+def addtweets():
+    return render_template('addtweets.html')
+
 ##### Error handlers
 @app.errorhandler(400)
 def invalid_request(error):
