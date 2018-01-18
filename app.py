@@ -1,9 +1,12 @@
-from flask import Flask, jsonify, request, make_response, abort, render_template
+from flask import Flask, jsonify, request, make_response, abort, render_template, redirect, session, url_for
 from time import gmtime, strftime
+from flask_cors import CORS, cross_origin
 import json
 import sqlite3
 
 app = Flask(__name__)
+app.secret_key = 'F12Zr47j\3yX R~X@H!jmM]Lwf/,?KT'
+CORS(app)
 
 ##### Info API
 @app.route("/api/v1/info")
@@ -207,6 +210,13 @@ def add_tweet(new_tweets):
         return "Success"
 
 #### Link with frontend
+
+def sumSessionCounter():
+    try:
+        session['counter'] += 1
+    except KeyError:
+        session['counter'] = 1
+
 @app.route('/')
 def main():
     sumSessionCounter()
@@ -219,6 +229,22 @@ def adduser():
 @app.route('/addtweets')
 def addtweets():
     return render_template('addtweets.html')
+
+@app.route('/addname')
+def addname():
+    if request.args.get('yourname'):
+        session['name'] = request.args.get('yourname')
+        # And then redirect the user to the main page
+        return redirect(url_for('main'))
+    else:
+        return render_template('addname.html', session=session)
+
+@app.route('/clear')
+def clearsession():
+    # Clear the session
+    session.clear()
+    # Redirect the user to the main page
+    return redirect(url_for('main'))
 
 ##### Error handlers
 @app.errorhandler(400)

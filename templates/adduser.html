@@ -12,26 +12,28 @@
             </div>
         </div>
         <div id="main" class="container">
-
             <table class="table table-striped">
-                Name:
-                <input data-bind="value: name" placeholder="Full Name of user" type "text"/>
+                <div>
+                    Name:
+                    <input data-bind="value: name" placeholder="Full Name of user" type "text"/>
+                </div>
+                <div>
+                    Username:
+                    <input data-bind="value: username" placeholder="Username" type="username" />
+                </div>
+                <div>
+                    email:
+                    <input data-bind="value: email" placeholder="Email id" type="email" />
+                </div>
+                <div>
+                    password:
+                    <input data-bind="value: password" type="password" placeholder="Password" />
+                </div>
+                <button type="submit">Add User</button>
+            </table>
         </div>
-        <div>
-            Username:
-            <input data-bind="value: username" placeholder="Username" type="username" />
-        </div>
-        <div>
-            email:
-            <input data-bind="value: email" placeholder="Email id" type="email" />
-        </div>
-        <div>
-            password:
-            <input data-bind="value: password" type="password" placeholder="Password" />
-        </div>
-        <button type="submit">Add User</button>
-        </table>
     </form>
+    
     <ul data-bind="foreach: user_list, visible: user_list().length > 0">
         <li>
             <p data-bind="text: name"></p>

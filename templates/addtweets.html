@@ -5,35 +5,35 @@
 </head>
 
 <body>
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a class="brand" href="#">Tweet App Demo</a>
+        </div>
+    </div>
     <form data-bind="submit: addTweet">
-        <div class="navbar">
-            <div class="navbar-inner">
-                <a class="brand" href="#">Tweet App Demo</a>
-            </div>
-        </div>
         <div id="main" class="container">
-
             <table class="table table-striped">
-                Username:
-                <input data-bind="value: username" placeholder="Username" type="username"></input>
+                <div>
+                    Username:
+                    <input data-bind="value: username" placeholder="Username" type="username"></input>
+                </div>
+                <div>
+                    body:
+                    <textarea data-bind="value: body" placeholder="Content of tweet" type="text"></textarea>
+                </div>
+                <button type="submit">Add Tweet</button>
+            </table>
         </div>
-        <div>
-            body:
-            <textarea data-bind="value: body" placeholder="Content of tweet" type="text"></textarea>
-        </div>
-        <div>
-        </div>
-        <button type="submit">Add Tweet</button>
-        </table>
     </form>
+
     <ul data-bind="foreach: tweets_list, visible: tweets_list().length > 0">
         <li>
             <p data-bind="text: username"></p>
             <p data-bind="text: body"></p>
             <p data-bind="text: timestamp"></p>
-
         </li>
     </ul>
+
     <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
     <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
