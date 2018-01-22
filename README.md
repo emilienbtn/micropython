@@ -1,1 +1,1 @@
-Test setup Microservices with python
+Test setup Microservices with Python, MongoDB, ReactJS, Jenkins, AWS

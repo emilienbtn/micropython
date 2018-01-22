@@ -165,27 +165,10 @@ def get_tweets():
     return list_tweets()
 
 def list_tweets():
-    conn = sqlite3.connect('mydb.db')
-    print("Opened database successfully")
     api_list=[]
-    cursor=conn.cursor()
-    cursor.execute("SELECT username, body, tweet_time, id from tweets")
-    data = cursor.fetchall()
-    print(data)
-    print(len(data))
-    if len(data) == 0:
-        return api_list
-    else:
-        for row in data:
-            tweets = {}
-            tweets['tweetedby'] = row[0]
-            tweets['body'] = row[1]
-            tweets['timestamp'] = row[2]
-            tweets['id'] = row[3]
-            print(tweets)
-            api_list.append(tweets)
-    conn.close()
-    print(api_list)
+    db = connection.micropython.tweets
+    for row in db.find():
+        api_list.append(str(row))
     return jsonify({'tweets_list': api_list})
 
 ## Get by tweet id
@@ -193,25 +176,15 @@ def list_tweets():
 def get_tweet(id):
     return list_tweet(id)
 
-def list_tweet(user_id):
-    print(user_id)
-    conn = sqlite3.connect('mydb.db')
-    print("Opened database successfully")
+def list_tweet(id):
+    db = connection.micropython.tweets
     api_list=[]
-    cursor=conn.cursor()
-    cursor.execute("SELECT * from tweets where id=?",(user_id,))
-    data = cursor.fetchall()
-    print(data)
-    if len(data) == 0:
+    tweet = db.find({'id':id})
+    for i in tweet:
+        api_list.append(str(i))
+    if api_list == []:
         abort(404)
-    else:
-        user = {}
-        user['id'] = data[0][0]
-        user['username'] = data[0][1]
-        user['body'] = data[0][2]
-        user['tweet_time'] = data[0][3]
-    conn.close()
-    return jsonify(user)
+    return jsonify({'tweet': api_list})
 
 ## POST
 @app.route('/api/v1/tweets', methods=['POST'])
@@ -219,23 +192,24 @@ def add_tweets():
     user_tweet = {}
     if not request.json or not 'username' in request.json or not 'body' in request.json:
         abort(400)
-    user_tweet['username'] = request.json['username']
+    user_tweet['tweetedby'] = request.json['username']
     user_tweet['body'] = request.json['body']
     user_tweet['created_at']=strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
-    print (user_tweet)
+    user_tweet['id'] = random.randint(1,1000)
     return  jsonify({'status': add_tweet(user_tweet)}), 201
 
-def add_tweet(new_tweets):
-    conn = sqlite3.connect('mydb.db')
-    print("Opened database successfully")
-    cursor=conn.cursor()
-    cursor.execute("SELECT * from users where username=? ", (new_tweets['username'],))
-    data = cursor.fetchall()
-    if len(data) == 0:
+def add_tweet(new_tweet):
+    api_list=[]
+    db_user = connection.micropython.users
+    db_tweet = connection.micropython.tweets
+    user = db_user.find_one({"username":new_tweet['tweetedby']})
+    for i in user:
+        print(str(i))
+        api_list.append(str(i))
+    if api_list == []:
         abort(404)
     else:
-        cursor.execute("INSERT into tweets (username, body, tweet_time) values(?,?,?)",(new_tweets['username'],new_tweets['body'],new_tweets['created_at']))
-        conn.commit()
+        db_tweet.insert(new_tweet)
         return "Success"
 
 #### Link with frontend
