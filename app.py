@@ -225,6 +225,10 @@ def main():
     sumSessionCounter()
     return render_template('main.html')
 
+@app.route('/index')
+def index():
+    return render_template('index.html')
+
 @app.route('/adduser')
 def adduser():
     return render_template('adduser.html')
