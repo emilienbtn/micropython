@@ -1,4 +1,6 @@
 flask
 flask_cors
+Flask-MongoAlchemy
+Flask-PyMongo
 nose
 pymongo

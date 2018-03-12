@@ -1,53 +1,30 @@
-function Tweet(data) {
-  this.id = ko.observable(data.id);
-  this.username = ko.observable(data.tweetedby);
-  this.body = ko.observable(data.body);
-  this.timestamp = ko.observable(data.timestamp);
-}
-
-function TweetListViewModel() {
-  var self = this;
-  self.tweets_list = ko.observableArray([]);
-  self.username = ko.observable();
-  self.body = ko.observable();
-  self.addTweet = function () {
-    self.save();
-    self.username("");
-    self.body("");
-  };
-
-  $.getJSON('/api/v1/tweets', function (tweetModels) {
-    var t = $.map(tweetModels.tweets_list, function (item) {
-      return new Tweet(item);
-    });
-    self.tweets_list(t);
-  });
-
-  self.save = function () {
-    return $.ajax({
-      url: '/api/v1/tweets',
-      contentType: 'application/json',
-      type: 'POST',
-      data: JSON.stringify({
-        'username': self.username(),
-        'body': self.body(),
-      }),
-      success: function (data) {
-        alert("success")
-        console.log("Pushing to users array");
-        self.push(new Tweet({
-          username: data.username, body:
-            data.body
-        }));
-        return;
-      },
-
-      error: function () {
-        return console.log("Failed");
+export default class Tweet extends React.Component {
+    sendTweet(event){
+      event.preventDefault();
+      this.props.sendTweet(this.refs.tweetTextArea.value);
+      this.refs.tweetTextArea.value = '';
+    }
+    render(){
+      return(
+          <div className="row">
+          <nav>
+            <div className="nav-wrapper">
+              <a href="#" className="brand-logo">APP</a>
+              <ul id="nav-mobile" className="right hide-on-med-and-down">
+                <li><a href="/profile">Profile</a></li>
+                <li><a href="/logout">Logout</a></li>
+              </ul>
+            </div>
+          </nav>
+  
+          <form onSubmit={this.sendTweet.bind(this)}>
+            <div className="input-field">
+              <textarea ref="tweetTextArea" className="materialize-textarea" />
+              <label>How you doing?</label>
+                <button className="btn waves-effect waves-light right">Tweet now <i className="material-icons right">send</i></button>
+            </div>
+           </form>
+      </div>
+        );
       }
-      
-    });
-  };
-}
-
-ko.applyBindings(new TweetListViewModel());
+  }

@@ -1,57 +1,141 @@
-from flask import Flask, jsonify, request, make_response, abort, render_template, redirect, session, url_for
+from flask import Flask, jsonify, request, make_response, abort, render_template, redirect, session, url_for, flash
 from time import gmtime, strftime
 from flask_cors import CORS, cross_origin
 from pymongo import MongoClient
+from flask_mongoalchemy import MongoAlchemy
+from flask_pymongo import PyMongo
+from time import gmtime, strftime
+from requests import Requests
 import json
 import random
+import bcrypt
 
+# Object creation
 app = Flask(__name__)
-app.secret_key = 'F12Zr47j\3yX R~X@H!jmM]Lwf/,?KT'
+app.config.from_object(__name__)
+app.secret_key = '<some secret key>'
 CORS(app)
 
-#Connection to the database
+app.config['MONGOALCHEMY_DATABASE'] = 'app'
+app.config['MONGOALCHEMY_CONNECTION_STRING'] = 'mongodb://localhost:27017/'
 connection = MongoClient("mongodb://localhost:27017/")
+
+db = MongoAlchemy()
+
+mongo=PyMongo(app)
+# Initialize Database
 def create_mongodatabase():
     try:
         dbnames = connection.database_names()
-        if 'micropython' not in dbnames:
-            db_users = connection.micropython.users
-            db_tweets = connection.micropython.tweets
-            db_api = connection.micropython.apirelease
-
-            db_users.insert({
-            "email": "user1@users.com",
-            "id": 1,
-            "name": "User 1",
-            "password": "user1",
-            "username": "user1"
-            })
-
-            db_tweets.insert({
-            "body": "Test new db #MongoDB",
-            "id": 1,
-            "timestamp": "2018-01-19T06:39:40Z",
-            "tweetedby": "user1"
-            })
-
+        if 'app' not in dbnames:
+            db_api = connection.app.apirelease
             db_api.insert( {
               "buildtime": "2018-01-01 10:00:00",
               "links": "/api/v1/users",
               "methods": "get, post, put, delete",
               "version": "v1"
             })
-
             db_api.insert( {
-              "buildtime": "2018-01-02 10:00:00",
-              "links": "/api/v1/tweets",
+              "buildtime": "2018-02-11 10:00:00",
+              "links": "api/v1/tweets",
               "methods": "get, post",
-              "version": "v1"
+              "version": "2018-01-10 10:00:00"
             })
             print ("Database Initialize completed!")
         else:
             print ("Database already Initialized!")
     except:
-        print ("Database creation failed!")
+        print ("Database creation failed!!")
+
+
+#### Link with frontend
+@app.route('/')
+def home():
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+        return render_template('index.html', session = session['username'])
+
+@app.route('/index')
+def index():
+    return render_template('index.html', session = session['username'])
+
+@app.route('/login', methods=['POST'])
+def do_admin_login():
+    users = mongo.db.users
+    api_list=[]
+    login_user = users.find({'username': request.form['username']})
+    for i in login_user:
+        api_list.append(i)
+    print (api_list)
+    if api_list != []:
+        # print (api_list[0]['password'].decode('utf-8'), bcrypt.hashpw(request.form['password'].encode('utf-8'), api_list[0]['password']).decode('utf-8'))
+        if api_list[0]['password'].decode('utf-8') == bcrypt.hashpw(request.form['password'].encode('utf-8'), api_list[0]['password']).decode('utf-8'):
+            session['logged_in'] = api_list[0]['username']
+            return redirect(url_for('index'))
+        return 'Invalide username/password!'
+    else:
+        flash("Invalid Authentication")
+    return 'Invalid User!'
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method=='POST':
+        users = mongo.db.users
+        api_list=[]
+        existing_user = users.find({'$or':[{"username":request.form['username']} ,{"email":request.form['email']}]})
+        for i in existing_user:
+            # print (str(i))
+            api_list.append(str(i))
+        # print (api_list)
+        if api_list == []:
+            users.insert({
+            "email": request.form['email'],
+            "id": random.randint(1,1000),
+            "name": request.form['name'],
+            "password": bcrypt.hashpw(request.form['pass'].encode('utf-8'), bcrypt.gensalt()),
+            "username": request.form['username']
+            })
+            session['username'] = request.form['username']
+            return redirect(url_for('home'))
+        return 'That user already exists'
+    else :
+        return render_template('signup.html')
+
+@app.route("/logout")
+def logout():
+    session['logged_in'] = False
+    return redirect(url_for('home'))
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    if request.method=='POST':
+        users = mongo.db.users
+        api_list=[]
+        existing_users = users.find({"username":session['username']})
+        for i in existing_users:
+            # print (str(i))
+            api_list.append(str(i))
+        user = {}
+        print (api_list)
+        if api_list != []:
+            print (request.form['email'])
+            user['email']=request.form['email']
+            user['name']= request.form['name']
+            user['password']=request.form['pass']
+            users.update({'username':session['username']},{'$set': user} )
+        else:
+            return 'User not found!'
+        return redirect(url_for('index'))
+    if request.method=='GET':
+        users = mongo.db.users
+        user=[]
+        print (session['username'])
+        existing_user = users.find({"username":session['username']})
+        for i in existing_user:
+            user.append(i)
+        return render_template('profile.html', name=user[0]['name'], username=user[0]['username'], password=user[0]['password'], email=user[0]['email'])
 
 ##### Info API
 @app.route("/api/v1/info")
@@ -66,29 +150,12 @@ def home_index():
 ## Get
 @app.route('/api/v1/users', methods=['GET'])
 def get_users():
-    return list_users()
-
-def list_users():
-    db = connection.micropython.users
-    api_list=[]
-    for row in db.find():
-        api_list.append(str(row))
-    return jsonify({'user_list': api_list})
+    return Requests.list_users()
 
 ## Get user by id
 @app.route('/api/v1/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
-    return list_user(user_id)
-
-def list_user(user_id):
-    print (user_id)
-    api_list=[]
-    db = connection.cloud_native.users
-    for row in db.find({'id':user_id}):
-        api_list.append(str(row))
-    if api_list == []:
-        abort(404)
-    return jsonify({'user_details':api_list})
+    return Requests.list_user(user_id)
 
 ## Post
 @app.route('/api/v1/users', methods=['POST'])
@@ -103,20 +170,7 @@ def create_user():
         'password': request.json['password'],
         'id': random.randint(1,1000)
     }
-    return jsonify({'status': add_user(user)}), 201
-
-def add_user(new_user):
-    db = connection.micropython.users
-    api_list=[]
-    user = db.find({'$or':[{"username":new_user['username']},{"email":new_user['email']}]})
-    for row in user:
-        print(str(row))
-        api_list.append(str(row))
-    if api_list == []:
-        db.insert(new_user)
-        return "Success"
-    else:
-        abort(409)
+    return jsonify({'status': Requests.add_user(user)}), 201
 
 ## Delete
 @app.route('/api/v1/users', methods=['DELETE'])
@@ -124,18 +178,7 @@ def delete_user():
     if not request.json or not 'username' in request.json:
         abort(400)
     user=request.json['username']
-    return jsonify({'status': del_user(user)}), 200
-
-def del_user(del_user):
-    db = connection.micropython.users
-    api_list = []
-    for i in db.find({'username':del_user}):
-        api_list.append(str(i))
-    if api_list == []:
-        abort(404)
-    else:
-        db.remove({"username":del_user})
-        return "Success"
+    return jsonify({'status': Requests.del_user(user)}), 200
 
 ## PUT
 @app.route('/api/v1/users/<int:user_id>', methods=['PUT'])
@@ -147,48 +190,23 @@ def update_user(user_id):
     key_list = request.json.keys()
     for i in key_list:
         user[i] = request.json[i]
-    return jsonify({'status': update_user(user)}), 200
-
-def update_user(user):
-    db = connection.micropython.users
-    exist_user = db.find_one({"id":user['id']})
-    if exist_user is None:
-        abort(404)
-    else:
-        db_user.update({'id':user['id']},{'$set': user}, upsert=False )
-        return "Success"
-
+    return jsonify({'status': Requests.update_user(user)}), 200
+  
 ##### Tweets management
 ## Get
 @app.route('/api/v1/tweets', methods=['GET'])
 def get_tweets():
-    return list_tweets()
-
-def list_tweets():
-    api_list=[]
-    db = connection.micropython.tweets
-    for row in db.find():
-        api_list.append(str(row))
-    return jsonify({'tweets_list': api_list})
+    return Requests.list_tweets()
 
 ## Get by tweet id
 @app.route('/api/v1/tweets/<int:id>', methods=['GET'])
 def get_tweet(id):
-    return list_tweet(id)
-
-def list_tweet(id):
-    db = connection.micropython.tweets
-    api_list=[]
-    tweet = db.find({'id':id})
-    for i in tweet:
-        api_list.append(str(i))
-    if api_list == []:
-        abort(404)
-    return jsonify({'tweet': api_list})
+    return Requests.list_tweet(id)
 
 ## POST
 @app.route('/api/v1/tweets', methods=['POST'])
 def add_tweets():
+    print ("add tweet")
     user_tweet = {}
     if not request.json or not 'username' in request.json or not 'body' in request.json:
         abort(400)
@@ -196,62 +214,7 @@ def add_tweets():
     user_tweet['body'] = request.json['body']
     user_tweet['created_at']=strftime("%Y-%m-%dT%H:%M:%SZ", gmtime())
     user_tweet['id'] = random.randint(1,1000)
-    return  jsonify({'status': add_tweet(user_tweet)}), 201
-
-def add_tweet(new_tweet):
-    api_list=[]
-    db_user = connection.micropython.users
-    db_tweet = connection.micropython.tweets
-    user = db_user.find_one({"username":new_tweet['tweetedby']})
-    for i in user:
-        print(str(i))
-        api_list.append(str(i))
-    if api_list == []:
-        abort(404)
-    else:
-        db_tweet.insert(new_tweet)
-        return "Success"
-
-#### Link with frontend
-
-def sumSessionCounter():
-    try:
-        session['counter'] += 1
-    except KeyError:
-        session['counter'] = 1
-
-@app.route('/')
-def main():
-    sumSessionCounter()
-    return render_template('main.html')
-
-@app.route('/index')
-def index():
-    return render_template('index.html')
-
-@app.route('/adduser')
-def adduser():
-    return render_template('adduser.html')
-
-@app.route('/addtweets')
-def addtweets():
-    return render_template('addtweets.html')
-
-@app.route('/addname')
-def addname():
-    if request.args.get('yourname'):
-        session['name'] = request.args.get('yourname')
-        # And then redirect the user to the main page
-        return redirect(url_for('main'))
-    else:
-        return render_template('addname.html', session=session)
-
-@app.route('/clear')
-def clearsession():
-    # Clear the session
-    session.clear()
-    # Redirect the user to the main page
-    return redirect(url_for('main'))
+    return jsonify({'status': Requests.add_tweet(user_tweet)}), 201
 
 ##### Error handlers
 @app.errorhandler(400)
