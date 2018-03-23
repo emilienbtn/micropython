@@ -104,16 +104,15 @@ class Requests:
 
     # Adding tweets
     def add_tweet(new_tweet):
-        print (new_tweet)
+        #print (new_tweet)
         api_list=[]
-        print (new_tweet)
         db_user = connection.app.users
         db_tweet = connection.app.tweets
         user = db_user.find({"username":new_tweet['tweetedby']})
         for i in user:
             api_list.append(str(i))
         if api_list == []:
-            abort(404)
+            abort(400)
         else:
             db_tweet.insert(new_tweet)
             return "Success"
