@@ -5,7 +5,10 @@ from pymongo import MongoClient
 from flask_mongoalchemy import MongoAlchemy
 from flask_pymongo import PyMongo
 from time import gmtime, strftime
+from auth0.v3.authentication import GetToken
+from auth0.v3.authentication import Users
 from requests import Requests
+import os
 import json
 import random
 import bcrypt
@@ -78,7 +81,6 @@ def do_admin_login():
         flash("Invalid Authentication")
     return 'Invalid User!'
 
-
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method=='POST':
@@ -136,6 +138,21 @@ def profile():
         for i in existing_user:
             user.append(i)
         return render_template('profile.html', name=user[0]['name'], username=user[0]['username'], password=user[0]['password'], email=user[0]['email'])
+
+#Set-up for Auth0
+@app.route('/callback')
+def callback_handling():
+    code = request.args.get('code')
+    get_token = GetToken('manishsethis.auth0.com')
+    auth0_users = Users('manishsethis.auth0.com')
+    token = get_token.authorization_code(os.environ['CLIENT_ID'], os.environ['CLIENT_SECRET'], code, 'http://localhost:5000/callback')
+    user_info = auth0_users.userinfo(token['access_token'])
+    session['profile'] = json.loads(user_info)
+    return redirect('/dashboard')
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template('index.html', user=session['profile'])
 
 ##### Info API
 @app.route("/api/v1/info")
